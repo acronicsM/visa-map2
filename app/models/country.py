@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -45,3 +45,5 @@ class Country(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    passports = relationship("Passport", back_populates="country")
+    visa_policies_dest = relationship("VisaPolicy", back_populates="destination")
