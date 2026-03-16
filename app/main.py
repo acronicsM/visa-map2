@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.database import get_db
+from app.routers import countries, visa_map
 
 app = FastAPI(
     title="Visa Map API",
@@ -18,6 +19,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(countries.router)
+app.include_router(visa_map.router)
+
 
 @app.get("/health", tags=["system"])
 async def health_check(db: AsyncSession = Depends(get_db)):
