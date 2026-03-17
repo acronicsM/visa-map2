@@ -4,15 +4,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.country import Country
 
 
-async def get_all_countries(db: AsyncSession) -> list[Country]:
-    
-    """Все активные страны для дропдауна"""
-    
-    result = await db.execute(
-        select(Country)
-        .where(Country.is_active == True)
-        .order_by(Country.name_ru)
-    )
+async def get_all_countries(
+    db: AsyncSession,
+    region: str | None = None,
+    search: str | None = None,
+) -> list[Country]:
+    """Все активные страны с опциональными фильтрами"""
+    query = select(Country).where(Country.is_active == True)
+
+    if region:
+        query = query.where(Country.region == region)
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.where(
+            Country.name_ru.ilike(search_term) |
+            Country.name_en.ilike(search_term)
+        )
+
+    query = query.order_by(Country.name_ru)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
