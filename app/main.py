@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.database import get_db
-from app.routers import countries, visa_map
+from app.routers import countries, visa_map, admin
 from app.exceptions import register_exception_handlers
 from app.middleware import logging_middleware
 from app.logging_config import setup_logging
@@ -31,6 +32,34 @@ register_exception_handlers(app)
 
 app.include_router(countries.router)
 app.include_router(visa_map.router)
+app.include_router(admin.router)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["components"]["securitySchemes"] = {
+        "ApiKeyHeader": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-api-key",
+        }
+    }
+    for path in schema["paths"].values():
+        for method in path.values():
+            if "admin" in method.get("tags", []):
+                method["security"] = [{"ApiKeyHeader": []}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi
 
 
 @app.get("/health", tags=["system"])
