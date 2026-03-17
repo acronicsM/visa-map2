@@ -1,10 +1,16 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.database import get_db
 from app.routers import countries, visa_map
+from app.exceptions import register_exception_handlers
+from app.middleware import logging_middleware
+from app.logging_config import setup_logging
+
+setup_logging()
 
 app = FastAPI(
     title="Visa Map API",
@@ -19,6 +25,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(BaseHTTPMiddleware, dispatch=logging_middleware)
+
+register_exception_handlers(app)
 
 app.include_router(countries.router)
 app.include_router(visa_map.router)
