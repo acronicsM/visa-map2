@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime
 
+from geoalchemy2 import Geometry
+
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -47,3 +49,12 @@ class Country(Base):
     )
     passports = relationship("Passport", back_populates="country")
     visa_policies_dest = relationship("VisaPolicy", back_populates="destination")
+
+    geom: Mapped[object] = mapped_column(
+        Geometry(geometry_type="MULTIPOLYGON", srid=4326),
+        nullable=True,
+    )
+    center_point: Mapped[object] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        nullable=True,
+    )
