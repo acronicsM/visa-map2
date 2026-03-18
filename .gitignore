@@ -25,3 +25,6 @@ Thumbs.db
 *.token
 *.secret
 secrets/
+
+# Geodata files
+scripts/geodata/
