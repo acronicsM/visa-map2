@@ -18,7 +18,7 @@ class NewsTrigger(Base):
     )
     headline: Mapped[str] = mapped_column(Text, nullable=False)
     source_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

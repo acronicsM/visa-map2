@@ -58,3 +58,6 @@ class Country(Base):
         Geometry(geometry_type="POINT", srid=4326),
         nullable=True,
     )
+
+    rss_sources = relationship("RssSource", back_populates="country")
+    
