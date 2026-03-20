@@ -6,14 +6,15 @@ from pydantic import BaseModel
 
 class VisaMapItem(BaseModel):
     """Один элемент карты — iso2 + категория визы"""
+    id: UUID
     iso2: str
     visa_category: str
+    confidence_level: int = 3
 
     model_config = {"from_attributes": True}
 
 
 class VisaPolicyDetail(BaseModel):
-    """Детальная информация о визовом режиме"""
     id: UUID
     visa_category: str
     max_stay_days: int | None = None
@@ -25,5 +26,7 @@ class VisaPolicyDetail(BaseModel):
     verified_by: str | None = None
     verified_at: datetime | None = None
     updated_at: datetime
+    confidence_level: int = 3
+    confidence_note: str | None = None
 
     model_config = {"from_attributes": True}

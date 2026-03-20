@@ -12,20 +12,16 @@ from app.cache import (
 
 
 async def get_visa_map(db: AsyncSession, passport_iso2: str) -> list[dict]:
-    """
-    Возвращает список {iso2, visa_category} для всех стран.
-    Кешируется на 1 час.
-    """
-    cache_key = VISA_MAP_KEY.format(iso2=passport_iso2.upper())
-    cached = await cache_get(cache_key)
-    if cached:
-        return cached
-
     DestCountry = aliased(Country, name="dest_country")
     PassportCountry = aliased(Country, name="passport_country")
 
     result = await db.execute(
-        select(DestCountry.iso2, VisaPolicy.visa_category)
+        select(
+            VisaPolicy.id,
+            DestCountry.iso2,
+            VisaPolicy.visa_category,
+            VisaPolicy.confidence_level,
+        )
         .join(VisaPolicy, VisaPolicy.destination_id == DestCountry.id)
         .join(Passport, Passport.id == VisaPolicy.passport_id)
         .join(PassportCountry, PassportCountry.id == Passport.country_id)
@@ -33,14 +29,15 @@ async def get_visa_map(db: AsyncSession, passport_iso2: str) -> list[dict]:
         .where(Passport.type == "regular")
         .where(DestCountry.is_active == True)
     )
-
-    items = [
-        {"iso2": row.iso2, "visa_category": row.visa_category}
+    return [
+        {
+            "id": row.id,
+            "iso2": row.iso2,
+            "visa_category": row.visa_category,
+            "confidence_level": row.confidence_level,
+        }
         for row in result.all()
     ]
-
-    await cache_set(cache_key, items, VISA_MAP_TTL)
-    return items
 
 
 async def get_visa_detail(

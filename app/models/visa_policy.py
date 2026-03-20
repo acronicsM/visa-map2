@@ -50,6 +50,11 @@ class VisaPolicy(Base):
         nullable=False,
     )
 
+    confidence_level: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=3
+    )
+    
+    confidence_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     passport = relationship("Passport", back_populates="visa_policies")
     destination = relationship("Country", back_populates="visa_policies_dest")
     history = relationship("VisaPolicyHistory", back_populates="policy")

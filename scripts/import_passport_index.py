@@ -154,6 +154,7 @@ async def import_passport_index():
                     visa_category=visa_category,
                     max_stay_days=max_stay_days,
                     verified_by="passport_index_dataset",
+                    confidence_level=3,
                 )
                 batch.append(policy)
 

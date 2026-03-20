@@ -23,6 +23,8 @@ class VisaPolicyUpdate(BaseModel):
     source_url: str | None = None
     verified_by: str | None = None
     change_reason: str | None = None
+    confidence_level: int | None = None
+    confidence_note: str | None = None
 
     @field_validator("visa_category")
     @classmethod
@@ -34,6 +36,15 @@ class VisaPolicyUpdate(BaseModel):
             )
         return v
 
+    @field_validator("confidence_level")
+    @classmethod
+    def validate_confidence(cls, v: int | None) -> int | None:
+        if v is not None and v not in (1, 2, 3):
+            raise ValueError(
+                "confidence_level должен быть 1 (МИД), 2 (проверено модератором) "
+                "или 3 (автоматически из датасета)"
+            )
+        return v
 
 class VisaPolicyResponse(BaseModel):
     id: UUID
@@ -49,9 +60,10 @@ class VisaPolicyResponse(BaseModel):
     verified_by: str | None = None
     verified_at: datetime | None = None
     updated_at: datetime
+    confidence_level: int = 3
+    confidence_note: str | None = None
 
     model_config = {"from_attributes": True}
-
 
 class NewsTriggerCreate(BaseModel):
     headline: str
