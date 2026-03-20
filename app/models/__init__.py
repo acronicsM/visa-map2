@@ -5,6 +5,7 @@ from app.models.visa_policy_history import VisaPolicyHistory
 from app.models.news_trigger import NewsTrigger
 from app.models.rss_source import RssSource
 from app.models.rss_keyword import RssKeyword
+from app.models.source_discovery_log import SourceDiscoveryLog
 
 __all__ = [
     "Country",
@@ -14,4 +15,5 @@ __all__ = [
     "NewsTrigger",
     "RssSource",
     "RssKeyword",
+    "SourceDiscoveryLog",
 ]
