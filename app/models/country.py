@@ -4,7 +4,7 @@ from datetime import datetime
 from geoalchemy2 import Geometry
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -29,6 +29,14 @@ class Country(Base):
     capital: Mapped[str | None] = mapped_column(String(100), nullable=True)
     flag_emoji: Mapped[str | None] = mapped_column(String(10), nullable=True)
     flag_svg_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    primary_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    language_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    country_tld: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    search_keywords: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    language_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    all_languages: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    name_translations: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    confidence_level: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     description_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
     description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     bbox_min_lat: Mapped[float | None] = mapped_column(nullable=True)
