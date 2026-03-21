@@ -108,6 +108,9 @@ async def import_geodata():
 
                 iso2 = ISO2_FIXES.get(iso2, iso2).upper()
 
+                if iso2 == "AU":
+                    print(f"  AU запись: NAME={props.get('NAME', '?')}, геометрия типа {record.shape.shapeType}")
+
                 result = await session.execute(
                     select(Country).where(Country.iso2 == iso2)
                 )
@@ -124,6 +127,22 @@ async def import_geodata():
 
                     if geom_shape.geom_type == "Polygon":
                         geom_shape = MultiPolygon([geom_shape])
+
+                    # Если геометрия уже есть — объединяем
+                    if country.geom is not None:
+                        from sqlalchemy import text
+                        result = await session.execute(
+                            text("SELECT ST_AsText(geom) FROM countries WHERE iso2 = :iso2"),
+                            {"iso2": iso2}
+                        )
+                        existing_wkt = result.scalar_one_or_none()
+                        if existing_wkt:
+                            from shapely.wkt import loads as wkt_loads
+                            existing_shape = wkt_loads(existing_wkt)
+                            from shapely.ops import unary_union
+                            geom_shape = unary_union([existing_shape, geom_shape])
+                            if geom_shape.geom_type == "Polygon":
+                                geom_shape = MultiPolygon([geom_shape])
 
                     geom_wkt = f"SRID=4326;{geom_shape.wkt}"
                     bounds = geom_shape.bounds

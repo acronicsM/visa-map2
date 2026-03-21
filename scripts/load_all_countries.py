@@ -117,7 +117,7 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
 async def load_countries():
     print("Загружаем данные с restcountries.com...")
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         # Запрос 1 — основные данные
         r1 = await client.get(
             "https://restcountries.com/v3.1/all"
