@@ -39,12 +39,13 @@ docker-compose up -d
 
 # Накатить миграции и заполнить данными
 alembic upgrade head
-python scripts/seed_countries.py
-python scripts/seed_visa_policies.py
-python scripts/import_geodata.py  # требует scripts/geodata/ne_110m_admin_0_countries.shp
+python scripts/load_all_countries.py
+python scripts/import_passport_index.py
+python scripts/import_geodata.py
+python scripts/seed_rss.py
 
 # Запустить сервер
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 ### API документация

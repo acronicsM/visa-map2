@@ -41,6 +41,50 @@ async def get_country_by_iso2(db: AsyncSession, iso2: str) -> Country | None:
     return result.scalar_one_or_none()
 
 
+async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
+    """GeoJSON Feature одной страны по коду iso2."""
+    import json
+    result = await db.execute(
+        select(
+            Country.iso2,
+            Country.name_ru,
+            Country.name_en,
+            Country.flag_emoji,
+            Country.region,
+            Country.bbox_min_lat,
+            Country.bbox_max_lat,
+            Country.bbox_min_lng,
+            Country.bbox_max_lng,
+            func.ST_AsGeoJSON(
+                func.ST_SimplifyPreserveTopology(Country.geom, 0.01)
+            ).label("geometry"),
+        )
+        .where(Country.iso2 == iso2.upper())
+        .where(Country.is_active == True)
+        .where(Country.geom.isnot(None))
+    )
+    row = result.one_or_none()
+    if not row or not row.geometry:
+        return None
+    return {
+        "type": "Feature",
+        "properties": {
+            "iso2": row.iso2,
+            "name_ru": row.name_ru,
+            "name_en": row.name_en,
+            "flag_emoji": row.flag_emoji,
+            "region": row.region,
+            "bbox": [
+                row.bbox_min_lng,
+                row.bbox_min_lat,
+                row.bbox_max_lng,
+                row.bbox_max_lat,
+            ],
+        },
+        "geometry": json.loads(row.geometry),
+    }
+
+
 async def get_countries_geodata(db: AsyncSession) -> dict:
     """
     GeoJSON FeatureCollection всех стран с границами.

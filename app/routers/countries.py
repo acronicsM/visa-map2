@@ -9,6 +9,7 @@ from app.services.country_service import (
     get_all_countries,
     get_country_by_iso2,
     get_countries_geodata,
+    get_country_geodata,
 )
 
 router = APIRouter(prefix="/countries", tags=["countries"])
@@ -35,7 +36,7 @@ async def list_countries(
     return countries
 
 
-@router.get("/geodata")
+@router.get("/geodata", include_in_schema=False)
 async def countries_geodata(db: AsyncSession = Depends(get_db)):
     """
     GeoJSON FeatureCollection всех стран с границами.
@@ -43,6 +44,19 @@ async def countries_geodata(db: AsyncSession = Depends(get_db)):
     """
     geojson = await get_countries_geodata(db)
     return JSONResponse(content=geojson)
+
+
+@router.get("/{iso2}/geodata", summary="GeoJSON одной страны")
+async def get_country_geodata_route(iso2: str, db: AsyncSession = Depends(get_db)):
+    """GeoJSON Feature одной страны по коду iso2. Удобен для тестирования геометрии."""
+    iso2 = validate_iso2(iso2)
+    feature = await get_country_geodata(db, iso2)
+    if not feature:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Геоданные для страны '{iso2}' не найдены"
+        )
+    return JSONResponse(content=feature)
 
 
 @router.get("/{iso2}", response_model=CountryDetail)
