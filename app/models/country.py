@@ -39,6 +39,17 @@ class Country(Base):
     confidence_level: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     description_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
     description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    safety_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    safety_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    safety_source: Mapped[str | None] = mapped_column(Text, nullable=True)
+    safety_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cost_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cost_per_day_usd: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cost_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     bbox_min_lat: Mapped[float | None] = mapped_column(nullable=True)
     bbox_max_lat: Mapped[float | None] = mapped_column(nullable=True)
     bbox_min_lng: Mapped[float | None] = mapped_column(nullable=True)

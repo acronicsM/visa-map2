@@ -34,6 +34,13 @@ class CountryDetail(CountryBase):
     numeric_code: int | None = None
     description_ru: str | None = None
     description_en: str | None = None
+    safety_level: str | None = None
+    safety_note: str | None = None
+    safety_source: str | None = None
+    safety_updated_at: datetime | None = None
+    cost_level: str | None = None
+    cost_per_day_usd: int | None = None
+    cost_updated_at: datetime | None = None
     bbox_min_lat: float | None = None
     bbox_max_lat: float | None = None
     bbox_min_lng: float | None = None
