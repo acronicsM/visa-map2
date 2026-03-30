@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.database import get_db
-from app.routers import countries, visa_map, admin
+from app.routers import admin, countries, country_seasons, visa_map
 from app.exceptions import register_exception_handlers
 from app.middleware import logging_middleware
 from app.logging_config import setup_logging
@@ -32,6 +32,7 @@ register_exception_handlers(app)
 
 app.include_router(countries.router)
 app.include_router(visa_map.router)
+app.include_router(country_seasons.router)
 app.include_router(admin.router)
 
 

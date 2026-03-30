@@ -6,6 +6,7 @@ from app.models.news_trigger import NewsTrigger
 from app.models.rss_source import RssSource
 from app.models.rss_keyword import RssKeyword
 from app.models.source_discovery_log import SourceDiscoveryLog
+from app.models.country_season import CountrySeason
 
 __all__ = [
     "Country",
@@ -16,4 +17,5 @@ __all__ = [
     "RssSource",
     "RssKeyword",
     "SourceDiscoveryLog",
+    "CountrySeason",
 ]

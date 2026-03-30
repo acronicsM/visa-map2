@@ -80,4 +80,5 @@ class Country(Base):
 
     rss_sources = relationship("RssSource", back_populates="country")
     discovery_logs = relationship("SourceDiscoveryLog", back_populates="country")
+    seasons = relationship("CountrySeason", back_populates="country")
     

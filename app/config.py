@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     redis_port: int = 6379
 
     api_key: str = "dev-secret-key"
+    input_folder_seasons: str | None = None
 
     @property
     def database_url(self) -> str:
