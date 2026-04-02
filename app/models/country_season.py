@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from geoalchemy2 import Geometry
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,7 +12,7 @@ from app.database import Base
 class CountrySeason(Base):
     __tablename__ = "country_seasons"
     __table_args__ = (
-        UniqueConstraint("iso2", "month", name="uq_country_seasons_iso2_month"),
+        Index("ix_country_seasons_iso2_month", "iso2", "month"),
         CheckConstraint("month BETWEEN 1 AND 12", name="ck_country_seasons_month_range"),
     )
 

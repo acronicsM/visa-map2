@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,7 +45,6 @@ async def get_country_by_iso2(db: AsyncSession, iso2: str) -> Country | None:
 
 async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
     """GeoJSON Feature одной страны по коду iso2."""
-    import json
     result = await db.execute(
         select(
             Country.iso2,
@@ -55,6 +56,9 @@ async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
             Country.bbox_max_lat,
             Country.bbox_min_lng,
             Country.bbox_max_lng,
+            Country.safety_level,
+            Country.cost_level,
+            Country.cost_per_day_usd,
             func.ST_AsGeoJSON(
                 func.ST_SimplifyPreserveTopology(Country.geom, 0.01)
             ).label("geometry"),
@@ -80,6 +84,9 @@ async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
                 row.bbox_max_lng,
                 row.bbox_max_lat,
             ],
+            "safety_level": row.safety_level,
+            "cost_level": row.cost_level,
+            "cost_per_day_usd": row.cost_per_day_usd,
         },
         "geometry": json.loads(row.geometry),
     }
@@ -105,6 +112,9 @@ async def get_countries_geodata(db: AsyncSession) -> dict:
             Country.bbox_max_lat,
             Country.bbox_min_lng,
             Country.bbox_max_lng,
+            Country.safety_level,
+            Country.cost_level,
+            Country.cost_per_day_usd,
             func.ST_AsGeoJSON(
                 func.ST_SimplifyPreserveTopology(Country.geom, 0.01)
             ).label("geometry"),
@@ -117,7 +127,6 @@ async def get_countries_geodata(db: AsyncSession) -> dict:
     for row in result.all():
         if not row.geometry:
             continue
-        import json
         features.append({
             "type": "Feature",
             "properties": {
@@ -132,6 +141,9 @@ async def get_countries_geodata(db: AsyncSession) -> dict:
                     row.bbox_max_lng,
                     row.bbox_max_lat,
                 ],
+                "safety_level": row.safety_level,
+                "cost_level": row.cost_level,
+                "cost_per_day_usd": row.cost_per_day_usd,
             },
             "geometry": json.loads(row.geometry),
         })

@@ -66,7 +66,8 @@ async def cache_delete_pattern(pattern: str) -> None:
 
 
 # Ключи кеша
-GEODATA_KEY = "countries:geodata"
+# v2: safety_level, cost_level, cost_per_day_usd в GeoJSON properties
+GEODATA_KEY = "countries:geodata:v2"
 VISA_MAP_KEY = "visa_map:{iso2}"
 
 # TTL в секундах

@@ -4,6 +4,7 @@ from app.schemas.country_season import (
     CountrySeasonGeoFeature,
     CountrySeasonGeoResponse,
     CountrySeasonItem,
+    CountrySeasonMonthMeta,
 )
 from app.schemas.visa_policy import VisaMapItem, VisaPolicyDetail
 
@@ -14,6 +15,7 @@ __all__ = [
     "CountrySeasonGeoFeature",
     "CountrySeasonGeoResponse",
     "CountrySeasonByCountryResponse",
+    "CountrySeasonMonthMeta",
     "VisaMapItem",
     "VisaPolicyDetail",
 ]
