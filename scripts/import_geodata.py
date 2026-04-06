@@ -1,27 +1,28 @@
 import asyncio
-import sys
 import os
-import zipfile
-import tempfile
+import re
 import shutil
+import sys
+import tempfile
+import zipfile
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import httpx
 import shapefile
-from shapely.geometry import shape
-from shapely.geometry import MultiPolygon
-
+from shapely.geometry import MultiPolygon, shape
+from shapely.ops import unary_union
+from shapely.wkt import loads as wkt_loads
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
 
 from app.config import settings
 from app.models.country import Country
+from app.models.natural_earth_admin0 import NaturalEarthAdmin0
 
 NATURAL_EARTH_URL = (
-    "https://naturalearth.s3.amazonaws.com"
-    "/10m_cultural/ne_10m_admin_0_countries.zip"
+    "https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_0_countries.zip"
 )
 
 ISO2_FIXES = {
@@ -29,11 +30,33 @@ ISO2_FIXES = {
 }
 
 
+def resolve_iso2(props: dict) -> str | None:
+    """ISO_A2 / ISO_A2_EH / ISO2_FIXES; None если кода нет или он невалиден."""
+    iso2 = props.get("ISO_A2", "").strip()
+    if not iso2 or iso2 == "-99":
+        alt = props.get("ISO_A2_EH", "").strip()
+        if alt and alt != "-99":
+            iso2 = alt
+        else:
+            return None
+    iso2 = ISO2_FIXES.get(iso2, iso2).upper()
+    if len(iso2) != 2 or not re.match(r"^[A-Z]{2}$", iso2):
+        return None
+    return iso2
+
+
+def adm0_a3_for_record(props: dict, index: int) -> str:
+    raw = (props.get("ADM0_A3") or "").strip()
+    if not raw or raw == "-99":
+        return f"NE_{index:04d}"
+    return raw[:10]
+
+
 async def download_shapefile(tmp_dir: str) -> str:
-    """Скачивает и распаковывает shapefile во временную папку"""
+    """Скачивает и распаковывает shapefile во временную папку."""
     zip_path = os.path.join(tmp_dir, "ne_10m.zip")
 
-    print(f"Скачиваем Natural Earth 10m (~30 МБ)...")
+    print("Скачиваем Natural Earth 10m (~30 МБ)...")
     async with httpx.AsyncClient(timeout=120) as client:
         async with client.stream("GET", NATURAL_EARTH_URL) as response:
             response.raise_for_status()
@@ -56,8 +79,7 @@ async def download_shapefile(tmp_dir: str) -> str:
 
     shp_path = os.path.join(tmp_dir, "ne_10m_admin_0_countries.shp")
     if not os.path.exists(shp_path):
-        # Ищем .shp в распакованных файлах
-        for root, dirs, files in os.walk(tmp_dir):
+        for root, _dirs, files in os.walk(tmp_dir):
             for file in files:
                 if file.endswith(".shp"):
                     shp_path = os.path.join(root, file)
@@ -66,7 +88,7 @@ async def download_shapefile(tmp_dir: str) -> str:
     return shp_path
 
 
-async def import_geodata():
+async def import_geodata() -> None:
     tmp_dir = tempfile.mkdtemp(prefix="naturalearth_")
 
     try:
@@ -76,7 +98,7 @@ async def import_geodata():
             print(f"ОШИБКА: shapefile не найден в {tmp_dir}")
             return
 
-        print(f"Читаем shapefile...")
+        print("Читаем shapefile...")
         sf = shapefile.Reader(shp_path)
         fields = [f[0] for f in sf.fields[1:]]
         print(f"Найдено записей: {len(sf.shapes())}")
@@ -86,41 +108,17 @@ async def import_geodata():
             engine, class_=AsyncSession, expire_on_commit=False
         )
 
-        updated = 0
-        skipped = 0
-        no_iso2 = []
-        not_in_db = []
+        ne_upserted = 0
+        country_updated = 0
+        geom_errors = 0
+        country_not_in_db = 0
 
         async with async_session() as session:
-            for record in sf.shapeRecords():
+            for index, record in enumerate(sf.shapeRecords()):
                 props = dict(zip(fields, record.record))
-                iso2 = props.get("ISO_A2", "").strip()
-
-                if not iso2 or iso2 == "-99":
-                    iso2_alt = props.get("ISO_A2_EH", "").strip()
-                    if iso2_alt and iso2_alt != "-99":
-                        iso2 = iso2_alt
-                    else:
-                        name = props.get("NAME", "???")
-                        no_iso2.append(name)
-                        skipped += 1
-                        continue
-
-                iso2 = ISO2_FIXES.get(iso2, iso2).upper()
-
-                if iso2 == "AU":
-                    print(f"  AU запись: NAME={props.get('NAME', '?')}, геометрия типа {record.shape.shapeType}")
-
-                result = await session.execute(
-                    select(Country).where(Country.iso2 == iso2)
-                )
-                country = result.scalar_one_or_none()
-
-                if not country:
-                    name = props.get("NAME", "???")
-                    not_in_db.append(f"{name} ({iso2})")
-                    skipped += 1
-                    continue
+                adm0_a3 = adm0_a3_for_record(props, index)
+                iso2 = resolve_iso2(props)
+                name = (props.get("NAME") or "Unknown")[:255]
 
                 try:
                     geom_shape = shape(record.shape.__geo_interface__)
@@ -128,63 +126,80 @@ async def import_geodata():
                     if geom_shape.geom_type == "Polygon":
                         geom_shape = MultiPolygon([geom_shape])
 
-                    # Если геометрия уже есть — объединяем
-                    if country.geom is not None:
-                        from sqlalchemy import text
-                        result = await session.execute(
-                            text("SELECT ST_AsText(geom) FROM countries WHERE iso2 = :iso2"),
-                            {"iso2": iso2}
-                        )
-                        existing_wkt = result.scalar_one_or_none()
-                        if existing_wkt:
-                            from shapely.wkt import loads as wkt_loads
-                            existing_shape = wkt_loads(existing_wkt)
-                            from shapely.ops import unary_union
-                            geom_shape = unary_union([existing_shape, geom_shape])
-                            if geom_shape.geom_type == "Polygon":
-                                geom_shape = MultiPolygon([geom_shape])
-
                     geom_wkt = f"SRID=4326;{geom_shape.wkt}"
                     bounds = geom_shape.bounds
                     centroid = geom_shape.centroid
                     center_wkt = f"SRID=4326;POINT({centroid.x} {centroid.y})"
 
-                    country.geom = geom_wkt
-                    country.center_point = center_wkt
-                    country.bbox_min_lng = bounds[0]
-                    country.bbox_min_lat = bounds[1]
-                    country.bbox_max_lng = bounds[2]
-                    country.bbox_max_lat = bounds[3]
+                    ne_row = await session.get(NaturalEarthAdmin0, adm0_a3)
+                    if ne_row is None:
+                        ne_row = NaturalEarthAdmin0(adm0_a3=adm0_a3)
+                        session.add(ne_row)
 
-                    updated += 1
-                    print(f"  Обновлена: {country.name_ru} ({iso2})")
+                    ne_row.iso2 = iso2
+                    ne_row.name = name
+                    ne_row.geom = geom_wkt
+                    ne_row.center_point = center_wkt
+                    ne_row.bbox_min_lng = bounds[0]
+                    ne_row.bbox_min_lat = bounds[1]
+                    ne_row.bbox_max_lng = bounds[2]
+                    ne_row.bbox_max_lat = bounds[3]
+                    ne_upserted += 1
+
+                    if iso2:
+                        country_result = await session.execute(
+                            select(Country).where(Country.iso2 == iso2)
+                        )
+                        country = country_result.scalar_one_or_none()
+                        if country:
+                            merged = geom_shape
+                            if country.geom is not None:
+                                wkt_row = await session.execute(
+                                    text(
+                                        "SELECT ST_AsText(geom) FROM countries "
+                                        "WHERE iso2 = :iso2"
+                                    ),
+                                    {"iso2": iso2},
+                                )
+                                existing_wkt = wkt_row.scalar_one_or_none()
+                                if existing_wkt:
+                                    existing_shape = wkt_loads(existing_wkt)
+                                    merged = unary_union([existing_shape, merged])
+                                    if merged.geom_type == "Polygon":
+                                        merged = MultiPolygon([merged])
+
+                            merged_wkt = f"SRID=4326;{merged.wkt}"
+                            mb = merged.bounds
+                            mc = merged.centroid
+                            country.geom = merged_wkt
+                            country.center_point = f"SRID=4326;POINT({mc.x} {mc.y})"
+                            country.bbox_min_lng = mb[0]
+                            country.bbox_min_lat = mb[1]
+                            country.bbox_max_lng = mb[2]
+                            country.bbox_max_lat = mb[3]
+                            country_updated += 1
+                            print(f"  Обновлена страна: {country.name_ru} ({iso2})")
+                        else:
+                            country_not_in_db += 1
 
                 except Exception as e:
-                    print(f"  Ошибка геометрии для {iso2}: {e}")
-                    skipped += 1
+                    print(f"  Ошибка геометрии для {adm0_a3}: {e}")
+                    geom_errors += 1
 
             await session.commit()
 
-        print(f"\nГотово!")
-        print(f"  Обновлено:  {updated}")
-        print(f"  Пропущено:  {skipped}")
-
-        if no_iso2:
-            print(f"\nБез iso2 ({len(no_iso2)}) — спорные территории:")
-            for name in no_iso2:
-                print(f"  {name}")
-
-        if not_in_db:
-            print(f"\nЕсть в shapefile но нет в БД ({len(not_in_db)}):")
-            for name in not_in_db:
-                print(f"  {name}")
+        print("\nГотово!")
+        print(f"  Natural Earth строк: {ne_upserted}")
+        print(f"  Обновлено countries.geom: {country_updated}")
+        print(f"  ISO2 есть, нет в БД: {country_not_in_db}")
+        print(f"  Ошибок геометрии: {geom_errors}")
 
         await engine.dispose()
 
     finally:
-        print(f"\nУдаляем временные файлы...")
+        print("\nУдаляем временные файлы...")
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        print(f"  Временная папка удалена")
+        print("  Временная папка удалена")
 
 
 if __name__ == "__main__":

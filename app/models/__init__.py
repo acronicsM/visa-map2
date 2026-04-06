@@ -1,4 +1,5 @@
 from app.models.country import Country
+from app.models.natural_earth_admin0 import NaturalEarthAdmin0
 from app.models.passport import Passport
 from app.models.visa_policy import VisaPolicy
 from app.models.visa_policy_history import VisaPolicyHistory
@@ -10,6 +11,7 @@ from app.models.country_season import CountrySeason
 
 __all__ = [
     "Country",
+    "NaturalEarthAdmin0",
     "Passport",
     "VisaPolicy",
     "VisaPolicyHistory",

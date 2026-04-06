@@ -62,6 +62,57 @@ def map_visa_category(value: str) -> tuple[str | None, int | None]:
             return ("embassy", None)
 
 
+async def clone_destination_policies(
+    session: AsyncSession,
+    countries_by_iso2: dict,
+    source_iso2: str,
+    target_iso2: str,
+) -> int:
+    """
+    Дублирует визовые режимы с одной страны назначения на другую.
+
+    В матрице passport-index нет колонки GL (Гренландия) — только DK.
+    Для раскраски карты и API копируем режимы Дании на Гренландию.
+    """
+    source = countries_by_iso2.get(source_iso2.upper())
+    target = countries_by_iso2.get(target_iso2.upper())
+    if not source or not target:
+        return 0
+
+    result = await session.execute(
+        select(VisaPolicy).where(VisaPolicy.destination_id == source.id)
+    )
+    policies = result.scalars().all()
+    added = 0
+    tag = f"passport_index_dataset+clone_{source_iso2.lower()}_{target_iso2.lower()}"
+    for p in policies:
+        dup_check = await session.execute(
+            select(VisaPolicy.id).where(
+                VisaPolicy.passport_id == p.passport_id,
+                VisaPolicy.destination_id == target.id,
+            ).limit(1)
+        )
+        if dup_check.scalar_one_or_none():
+            continue
+        session.add(
+            VisaPolicy(
+                passport_id=p.passport_id,
+                destination_id=target.id,
+                visa_category=p.visa_category,
+                max_stay_days=p.max_stay_days,
+                visa_validity_days=p.visa_validity_days,
+                processing_days=p.processing_days,
+                fee_usd=p.fee_usd,
+                conditions=p.conditions,
+                verified_by=tag,
+                confidence_level=p.confidence_level,
+                confidence_note=p.confidence_note,
+            )
+        )
+        added += 1
+    return added
+
+
 async def import_passport_index():
     print("Скачиваем Passport Index датасет...")
 
@@ -168,10 +219,18 @@ async def import_passport_index():
                     f"записей: {total_added}"
                 )
 
+        gl_cloned = await clone_destination_policies(
+            session, countries_by_iso2, "DK", "GL"
+        )
+        print(
+            f"\nГренландия: скопировано политик с DK → GL: {gl_cloned} "
+            "(в датасете нет колонки GL)"
+        )
+
         print("\nСохраняем в БД...")
         await session.commit()
 
-    print(f"\nГотово!")
+    print("\nГотово!")
     print(f"  Добавлено записей:        {total_added}")
     print(f"  Пропущено (нет паспорта): {total_skipped_passport}")
     print(f"  Пропущено (нет страны):   {total_skipped_dest}")

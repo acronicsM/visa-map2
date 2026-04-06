@@ -19,13 +19,25 @@ class CountryBase(BaseModel):
 
 class CountryShort(BaseModel):
     """Для дропдауна — минимум полей"""
+
     iso2: str
     name_ru: str
     name_en: str
     flag_emoji: str | None = None
     region: str | None = None
+    primary_language: str | None = None
+    official_language_codes: list[str] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class CountryNamesEntry(BaseModel):
+    """Справочник имён для кешируемого API."""
+
+    name_en: str
+    name_ru: str
+    name_native: str | None = None
+    name_translations: dict[str, str] | None = None
 
 
 class CountryDetail(CountryBase):

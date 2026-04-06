@@ -69,7 +69,7 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
     if not name_en:
         return None
 
-    native_names = data.get("name", {}).get("nativeName", {})
+    native_names = data.get("name", {}).get("nativeName", {}) or {}
     name_native = None
     if native_names:
         first_native = next(iter(native_names.values()), {})
@@ -77,6 +77,17 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
 
     translations = data.get("translations", {})
     name_ru = translations.get("rus", {}).get("common", name_en)
+
+    name_translations = {
+        lang_code: names.get("common", "")
+        for lang_code, names in translations.items()
+        if isinstance(names, dict) and names.get("common")
+    }
+    for lang_code, names in native_names.items():
+        if lang_code in name_translations:
+            continue
+        if isinstance(names, dict) and names.get("common"):
+            name_translations[lang_code] = names["common"]
 
     capital_list = data.get("capital", [])
     capital = capital_list[0] if capital_list else None
@@ -87,12 +98,6 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
 
     langs = data.get("languages", {})
     tlds = data.get("tld", [])
-
-    name_translations = {
-        lang_code: names.get("common", "")
-        for lang_code, names in translations.items()
-        if isinstance(names, dict) and names.get("common")
-    }
 
     return {
         "iso2": iso2,
@@ -167,7 +172,7 @@ async def load_countries():
             lang_to_countries[lang_code].append(cca2)
 
     print(f"Уникальных языков: {len(lang_to_countries)}")
-    print(f"Запускаем Set Cover...")
+    print("Запускаем Set Cover...")
     country_to_primary_lang = greedy_set_cover(lang_to_countries, all_iso2)
     print(f"Primary language определён для {len(country_to_primary_lang)} стран")
 
@@ -181,6 +186,13 @@ async def load_countries():
             parsed.append(country_data)
 
     print(f"Распарсено: {len(parsed)} стран")
+
+    multi_lang_count = sum(
+        1
+        for p in parsed
+        if p.get("all_languages") and len(p["all_languages"]) > 1
+    )
+    print(f"Стран с более чем одним языком: {multi_lang_count}")
 
     engine = create_async_engine(settings.database_url, echo=False)
     async_session = sessionmaker(
@@ -235,13 +247,13 @@ async def load_countries():
     for lang in country_to_primary_lang.values():
         lang_stats[lang] += 1
 
-    print(f"\nТоп-10 языков по покрытию:")
+    print("\nТоп-10 языков по покрытию:")
     for lang_code, count in sorted(
         lang_stats.items(), key=lambda x: -x[1]
     )[:10]:
         print(f"  {lang_code:<6} — {count} стран")
 
-    print(f"\nГотово!")
+    print("\nГотово!")
     print(f"  Добавлено:  {added}")
     print(f"  Обновлено:  {updated}")
     print(f"  Без изменений: {skipped}")

@@ -68,8 +68,10 @@ async def cache_delete_pattern(pattern: str) -> None:
 # Ключи кеша
 # v2: safety_level, cost_level, cost_per_day_usd в GeoJSON properties
 GEODATA_KEY = "countries:geodata:v2"
+COUNTRY_NAMES_KEY = "countries:names:v1"
 VISA_MAP_KEY = "visa_map:{iso2}"
 
 # TTL в секундах
 GEODATA_TTL = 60 * 60 * 24      # 24 часа — границы стран не меняются
+COUNTRY_NAMES_TTL = 60 * 60 * 24  # 24 часа — справочник имён
 VISA_MAP_TTL = 60 * 60           # 1 час — визовые режимы меняются редко
