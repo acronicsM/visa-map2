@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -13,6 +14,18 @@ class Settings(BaseSettings):
 
     api_key: str = "dev-secret-key"
     input_folder_seasons: str | None = None
+
+    # Маппинг safety_final_score → countries.safety_level (выше score = безопаснее)
+    safety_score_safe_min: float = 70.0
+    safety_score_unsafe_min: float = 40.0
+
+    @model_validator(mode="after")
+    def _safety_thresholds_order(self) -> "Settings":
+        if self.safety_score_safe_min <= self.safety_score_unsafe_min:
+            raise ValueError(
+                "safety_score_safe_min должен быть больше safety_score_unsafe_min"
+            )
+        return self
 
     @property
     def database_url(self) -> str:

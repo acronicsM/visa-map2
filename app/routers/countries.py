@@ -13,7 +13,13 @@ from app.services.country_service import (
     get_country_names_map,
     build_country_short,
 )
-from app.cache import cache_get, cache_set, COUNTRY_NAMES_KEY, COUNTRY_NAMES_TTL
+from app.cache import (
+    COUNTRY_NAMES_KEY,
+    COUNTRY_NAMES_TTL,
+    SAFETY_FINAL_SCORES_KEY,
+    cache_get,
+    cache_set,
+)
 
 router = APIRouter(prefix="/countries", tags=["countries"])
 
@@ -72,6 +78,18 @@ async def country_names(db: AsyncSession = Depends(get_db)):
         return cached
     data = await get_country_names_map(db)
     await cache_set(COUNTRY_NAMES_KEY, data, COUNTRY_NAMES_TTL)
+    return data
+
+
+@router.get("/safety-final-scores", response_model=dict[str, float])
+async def safety_final_scores():
+    """
+    Карта iso2 -> safety_final_score из Redis (без БД).
+    Пустой объект, если админ ещё не загружал данные.
+    """
+    data = await cache_get(SAFETY_FINAL_SCORES_KEY)
+    if data is None:
+        return {}
     return data
 
 

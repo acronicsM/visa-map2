@@ -1,8 +1,9 @@
 import logging
+import re
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.visa_policy import VisaPolicy
@@ -10,10 +11,25 @@ from app.models.visa_policy_history import VisaPolicyHistory
 from app.models.news_trigger import NewsTrigger
 from app.models.passport import Passport
 from app.models.country import Country
-from app.schemas.admin import VisaPolicyUpdate, NewsTriggerCreate, NewsTriggerStatusUpdate
+from app.cache import (
+    GEODATA_KEY,
+    SAFETY_FINAL_SCORES_KEY,
+    cache_delete,
+    cache_set_persistent,
+)
+from app.schemas.admin import (
+    NewsTriggerCreate,
+    NewsTriggerStatusUpdate,
+    SafetyMergedPayload,
+    SafetyScoresImportResponse,
+    VisaPolicyUpdate,
+)
+from app.services.safety_level_mapping import final_score_to_safety_level
 from app.services.visa_service import invalidate_visa_cache
 
 logger = logging.getLogger(__name__)
+
+_SAFETY_IMPORT_SOURCE = "safety_final_score"
 
 
 async def update_visa_policy(
@@ -134,3 +150,63 @@ async def get_news_triggers(
         query = query.where(NewsTrigger.status == status)
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def store_safety_final_scores(
+    db: AsyncSession,
+    payload: SafetyMergedPayload,
+) -> SafetyScoresImportResponse:
+    """
+    1) Карта iso2 -> safety_final_score в Redis.
+    2) По порогам из Settings → countries.safety_level (safe/unsafe/dangerous).
+    3) Сброс кеша GeoJSON.
+    """
+    out: dict[str, float] = {}
+    for raw_iso, entry in payload.by_iso2.items():
+        iso = raw_iso.strip().upper()
+        if not re.match(r"^[A-Z]{2}$", iso):
+            continue
+        out[iso] = float(entry.safety_final_score)
+
+    if not out:
+        await cache_set_persistent(SAFETY_FINAL_SCORES_KEY, {})
+        await cache_delete(GEODATA_KEY)
+        return SafetyScoresImportResponse(stored_count=0, countries_safety_updated=0)
+
+    now = datetime.now(timezone.utc)
+    # Отдельные UPDATE по iso2: надёжно с asyncpg (jsonb_to_recordset + CAST
+    # в text() часто даёт 0 затронутых строк из‑за привязки параметров).
+    updated = 0
+    for iso, score in out.items():
+        level = final_score_to_safety_level(score)
+        res = await db.execute(
+            update(Country)
+            .where(func.upper(func.trim(Country.iso2)) == iso)
+            .values(
+                safety_level=level,
+                safety_updated_at=now,
+                safety_source=_SAFETY_IMPORT_SOURCE,
+                updated_at=now,
+            )
+        )
+        updated += int(res.rowcount or 0)
+    await db.commit()
+
+    await cache_set_persistent(SAFETY_FINAL_SCORES_KEY, out)
+    await cache_delete(GEODATA_KEY)
+    if updated < len(out):
+        logger.warning(
+            "Safety import: в Redis %s кодов, в Postgres обновлено строк %s "
+            "(нет совпадения iso2 в таблице countries?)",
+            len(out),
+            updated,
+        )
+    logger.info(
+        "Safety import: redis=%s rows, postgres safety_level updated=%s",
+        len(out),
+        updated,
+    )
+    return SafetyScoresImportResponse(
+        stored_count=len(out),
+        countries_safety_updated=updated,
+    )

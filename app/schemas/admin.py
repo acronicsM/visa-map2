@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 VALID_VISA_CATEGORIES = {
@@ -111,3 +111,31 @@ class NewsTriggerStatusUpdate(BaseModel):
                 f"Допустимые: {', '.join(sorted(VALID_TRIGGER_STATUSES))}"
             )
         return v
+
+
+class SafetyMergedCountryEntry(BaseModel):
+    """Строка merged JSON: нужен только safety_final_score, остальное игнорируем."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    safety_final_score: float
+
+    @field_validator("safety_final_score")
+    @classmethod
+    def score_in_range(cls, v: float) -> float:
+        if not 0.0 <= v <= 100.0:
+            raise ValueError("safety_final_score должен быть в диапазоне 0..100")
+        return v
+
+
+class SafetyMergedPayload(BaseModel):
+    """Тело как у safety_merged.json: { \"by_iso2\": { \"AD\": { ... } } }."""
+
+    by_iso2: dict[str, SafetyMergedCountryEntry]
+
+
+class SafetyScoresImportResponse(BaseModel):
+    """Результат загрузки: Redis + обновление safety_level в Postgres."""
+
+    stored_count: int
+    countries_safety_updated: int

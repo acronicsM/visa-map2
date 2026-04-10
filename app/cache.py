@@ -45,6 +45,16 @@ async def cache_set(key: str, value: Any, ttl: int) -> None:
         logger.warning(f"Cache SET error for '{key}': {e}")
 
 
+async def cache_set_persistent(key: str, value: Any) -> None:
+    """Запись в Redis без TTL (пока не перезапишут)."""
+    try:
+        redis = await get_redis()
+        await redis.set(key, json.dumps(value, ensure_ascii=False))
+        logger.info(f"Cache SET (persistent): {key}")
+    except Exception as e:
+        logger.warning(f"Cache SET persistent error for '{key}': {e}")
+
+
 async def cache_delete(key: str) -> None:
     try:
         redis = await get_redis()
@@ -69,6 +79,8 @@ async def cache_delete_pattern(pattern: str) -> None:
 # v2: safety_level, cost_level, cost_per_day_usd в GeoJSON properties
 GEODATA_KEY = "countries:geodata:v2"
 COUNTRY_NAMES_KEY = "countries:names:v1"
+# Карта iso2 -> float (без Postgres); выставляется Admin API
+SAFETY_FINAL_SCORES_KEY = "countries:safety_final_scores:v1"
 VISA_MAP_KEY = "visa_map:{iso2}"
 
 # TTL в секундах

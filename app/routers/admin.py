@@ -5,15 +5,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import require_api_key
 from app.schemas.admin import (
-    VisaPolicyUpdate, VisaPolicyResponse,
-    NewsTriggerCreate, NewsTriggerResponse,
+    NewsTriggerCreate,
+    NewsTriggerResponse,
     NewsTriggerStatusUpdate,
+    SafetyMergedPayload,
+    SafetyScoresImportResponse,
+    VisaPolicyResponse,
+    VisaPolicyUpdate,
 )
 from app.services.admin_service import (
-    update_visa_policy,
     create_news_trigger,
-    update_trigger_status,
     get_news_triggers,
+    store_safety_final_scores,
+    update_trigger_status,
+    update_visa_policy,
 )
 
 router = APIRouter(
@@ -21,6 +26,22 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(require_api_key)],
 )
+
+
+@router.put(
+    "/countries/safety-final-scores",
+    response_model=SafetyScoresImportResponse,
+)
+async def put_safety_final_scores(
+    body: SafetyMergedPayload,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Полная замена карты safety_final_score в Redis и выставление safety_level
+    в Postgres (safe/unsafe/dangerous) по порогам из env.
+    Тело как у safety_merged.json (поле by_iso2).
+    """
+    return await store_safety_final_scores(db, body)
 
 
 @router.patch("/visa-policies/{policy_id}", response_model=VisaPolicyResponse)
