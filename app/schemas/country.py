@@ -43,6 +43,7 @@ class CountryShort(BaseModel):
 class CountryNamesEntry(BaseModel):
     """Справочник имён для кешируемого API."""
 
+    iso3: str
     name_en: str
     name_ru: str
     name_native: str | None = None

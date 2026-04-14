@@ -204,6 +204,7 @@ async def get_country_names_map(db: AsyncSession) -> dict[str, dict[str, Any]]:
     result = await db.execute(
         select(
             Country.iso2,
+            Country.iso3,
             Country.name_en,
             Country.name_ru,
             Country.name_native,
@@ -216,6 +217,7 @@ async def get_country_names_map(db: AsyncSession) -> dict[str, dict[str, Any]]:
         if trans is not None and not isinstance(trans, dict):
             trans = None
         out[row.iso2] = {
+            "iso3": row.iso3,
             "name_en": row.name_en,
             "name_ru": row.name_ru,
             "name_native": row.name_native,

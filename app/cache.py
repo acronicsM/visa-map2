@@ -78,7 +78,7 @@ async def cache_delete_pattern(pattern: str) -> None:
 # Ключи кеша
 # v2: safety_level, cost_level, cost_per_day_usd в GeoJSON properties
 GEODATA_KEY = "countries:geodata:v2"
-COUNTRY_NAMES_KEY = "countries:names:v1"
+COUNTRY_NAMES_KEY = "countries:names:v2"
 # Карта iso2 -> float (без Postgres); выставляется Admin API
 SAFETY_FINAL_SCORES_KEY = "countries:safety_final_scores:v1"
 VISA_MAP_KEY = "visa_map:{iso2}"
