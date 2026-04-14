@@ -36,6 +36,7 @@ class Country(Base):
     language_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     all_languages: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     name_translations: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    currencies: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     confidence_level: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     description_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
     description_en: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -22,6 +22,14 @@ def official_language_codes(country: Country) -> list[str] | None:
     return codes if codes else None
 
 
+def currency_codes_for_country(country: Country) -> list[str] | None:
+    """Коды ISO 4217 из currencies (сортировка для стабильного API)."""
+    if not country.currencies or not isinstance(country.currencies, dict):
+        return None
+    codes = sorted(country.currencies.keys())
+    return codes if codes else None
+
+
 def build_country_short(country: Country) -> CountryShort:
     """CountryShort с вычисляемыми языковыми полями."""
     return CountryShort(
@@ -32,6 +40,7 @@ def build_country_short(country: Country) -> CountryShort:
         region=country.region,
         primary_language=country.primary_language,
         official_language_codes=official_language_codes(country),
+        currency_codes=currency_codes_for_country(country),
     )
 
 

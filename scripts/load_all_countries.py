@@ -14,11 +14,6 @@ from app.config import settings
 from app.models.country import Country
 from app.models.passport import Passport
 
-RESTCOUNTRIES_URL = (
-    "https://restcountries.com/v3.1/all"
-    "?fields=cca2,cca3,ccn3,name,translations,capital,region,subregion,flag,languages,tld"
-)
-
 
 def greedy_set_cover(
     lang_to_countries: dict[str, list[str]],
@@ -48,6 +43,36 @@ def greedy_set_cover(
         covered |= newly_covered
 
     return country_to_lang
+
+
+def parse_currencies(raw: dict | None) -> dict | None:
+    """
+    Нормализует currencies из restcountries: ключи ISO 4217 (верхний регистр),
+    значения — {name, symbol}.
+    """
+    if not raw or not isinstance(raw, dict):
+        return None
+    out: dict[str, dict[str, str]] = {}
+    for code, info in raw.items():
+        if not isinstance(code, str):
+            continue
+        code_u = code.strip().upper()
+        if len(code_u) != 3 or not code_u.isalpha():
+            continue
+        if not isinstance(info, dict):
+            continue
+        name = info.get("name")
+        symbol = info.get("symbol")
+        sym_str = (
+            symbol
+            if isinstance(symbol, str)
+            else ("" if symbol is None else str(symbol))
+        )
+        out[code_u] = {
+            "name": name if isinstance(name, str) else "",
+            "symbol": sym_str,
+        }
+    return out if out else None
 
 
 def parse_country(data: dict, primary_lang: str | None) -> dict | None:
@@ -98,6 +123,7 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
 
     langs = data.get("languages", {})
     tlds = data.get("tld", [])
+    currencies = parse_currencies(data.get("currencies"))
 
     return {
         "iso2": iso2,
@@ -116,6 +142,7 @@ def parse_country(data: dict, primary_lang: str | None) -> dict | None:
         "all_languages": langs if langs else None,
         "country_tld": tlds[0] if tlds else None,
         "name_translations": name_translations if name_translations else None,
+        "currencies": currencies,
     }
 
 
@@ -126,7 +153,8 @@ async def load_countries():
         # Запрос 1 — основные данные
         r1 = await client.get(
             "https://restcountries.com/v3.1/all"
-            "?fields=cca2,cca3,ccn3,name,translations,capital,region,subregion,flag"
+            "?fields=cca2,cca3,ccn3,name,translations,capital,"
+            "region,subregion,flag,currencies"
         )
         r1.raise_for_status()
         basic_data = r1.json()

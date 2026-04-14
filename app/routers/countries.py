@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import re
 
 from app.database import get_db
-from app.schemas.country import CountryShort, CountryDetail, CountryNamesEntry
+from app.schemas.country import CountryDetail, CountryNamesEntry, CountryShort
 from app.services.country_service import (
     get_all_countries,
     get_country_by_iso2,
@@ -116,4 +116,4 @@ async def get_country(iso2: str, db: AsyncSession = Depends(get_db)):
             status_code=404,
             detail=f"Страна с кодом '{iso2}' не найдена",
         )
-    return country
+    return CountryDetail.model_validate(country)
