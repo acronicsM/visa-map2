@@ -30,6 +30,35 @@ def currency_codes_for_country(country: Country) -> list[str] | None:
     return codes if codes else None
 
 
+def normalize_currencies_json(raw: object) -> dict[str, dict[str, str]] | None:
+    """
+    Нормализует JSONB currencies для ответа API (ISO 4217 -> name, symbol).
+    """
+    if not raw or not isinstance(raw, dict):
+        return None
+    out: dict[str, dict[str, str]] = {}
+    for code, info in raw.items():
+        if not isinstance(code, str):
+            continue
+        code_u = code.strip().upper()
+        if len(code_u) != 3 or not code_u.isalpha():
+            continue
+        if not isinstance(info, dict):
+            continue
+        name = info.get("name")
+        symbol = info.get("symbol")
+        sym_str = (
+            symbol
+            if isinstance(symbol, str)
+            else ("" if symbol is None else str(symbol))
+        )
+        out[code_u] = {
+            "name": name if isinstance(name, str) else "",
+            "symbol": sym_str,
+        }
+    return out if out else None
+
+
 def build_country_short(country: Country) -> CountryShort:
     """CountryShort с вычисляемыми языковыми полями."""
     return CountryShort(
@@ -95,8 +124,6 @@ async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
             Country.bbox_min_lng,
             Country.bbox_max_lng,
             Country.safety_level,
-            Country.cost_level,
-            Country.cost_per_day_usd,
             func.ST_AsGeoJSON(
                 func.ST_SimplifyPreserveTopology(Country.geom, 0.01)
             ).label("geometry"),
@@ -123,8 +150,6 @@ async def get_country_geodata(db: AsyncSession, iso2: str) -> dict | None:
                 row.bbox_max_lat,
             ],
             "safety_level": row.safety_level,
-            "cost_level": row.cost_level,
-            "cost_per_day_usd": row.cost_per_day_usd,
         },
         "geometry": json.loads(row.geometry),
     }
@@ -151,8 +176,6 @@ async def get_countries_geodata(db: AsyncSession) -> dict:
             Country.bbox_min_lng,
             Country.bbox_max_lng,
             Country.safety_level,
-            Country.cost_level,
-            Country.cost_per_day_usd,
             func.ST_AsGeoJSON(
                 func.ST_SimplifyPreserveTopology(Country.geom, 0.01)
             ).label("geometry"),
@@ -181,8 +204,6 @@ async def get_countries_geodata(db: AsyncSession) -> dict:
                         row.bbox_max_lat,
                     ],
                     "safety_level": row.safety_level,
-                    "cost_level": row.cost_level,
-                    "cost_per_day_usd": row.cost_per_day_usd,
                 },
                 "geometry": json.loads(row.geometry),
             }
@@ -209,6 +230,7 @@ async def get_country_names_map(db: AsyncSession) -> dict[str, dict[str, Any]]:
             Country.name_ru,
             Country.name_native,
             Country.name_translations,
+            Country.currencies,
         ).where(Country.is_active)
     )
     out: dict[str, dict[str, Any]] = {}
@@ -222,5 +244,6 @@ async def get_country_names_map(db: AsyncSession) -> dict[str, dict[str, Any]]:
             "name_ru": row.name_ru,
             "name_native": row.name_native,
             "name_translations": trans,
+            "currencies": normalize_currencies_json(row.currencies),
         }
     return out

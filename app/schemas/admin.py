@@ -139,3 +139,9 @@ class SafetyScoresImportResponse(BaseModel):
 
     stored_count: int
     countries_safety_updated: int
+
+
+class TravelCostUploadResponse(BaseModel):
+    """Результат загрузки матрицы стоимостей."""
+
+    imported_count: int

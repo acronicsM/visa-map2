@@ -1,8 +1,13 @@
-from pydantic import model_validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
+
     postgres_user: str
     postgres_password: str
     postgres_db: str
@@ -19,6 +24,15 @@ class Settings(BaseSettings):
     safety_score_safe_min: float = 70.0
     safety_score_unsafe_min: float = 40.0
 
+    # JSON: {"thresholds":[0.5,1.0],"labels":["..."],"colors":["#..","#..","#.."]}
+    travel_cost_score_bands: str | None = Field(
+        default=None,
+        description=(
+            "Интервалы относительной стоимости (score). "
+            "Пусто — значения по умолчанию в коде."
+        ),
+    )
+
     @model_validator(mode="after")
     def _safety_thresholds_order(self) -> "Settings":
         if self.safety_score_safe_min <= self.safety_score_unsafe_min:
@@ -34,10 +48,6 @@ class Settings(BaseSettings):
             f"{self.postgres_password}@{self.postgres_host}:"
             f"{self.postgres_port}/{self.postgres_db}"
         )
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 settings = Settings()

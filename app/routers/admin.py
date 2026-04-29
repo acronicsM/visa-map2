@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.schemas.admin import (
     NewsTriggerStatusUpdate,
     SafetyMergedPayload,
     SafetyScoresImportResponse,
+    TravelCostUploadResponse,
     VisaPolicyResponse,
     VisaPolicyUpdate,
 )
@@ -20,6 +21,7 @@ from app.services.admin_service import (
     update_trigger_status,
     update_visa_policy,
 )
+from app.services.travel_cost_service import import_travel_costs_from_file
 
 router = APIRouter(
     prefix="/admin",
@@ -94,3 +96,18 @@ async def patch_trigger_status(
             detail=f"Триггер {trigger_id} не найден",
         )
     return trigger
+
+
+@router.put("/travel-costs", response_model=TravelCostUploadResponse)
+async def put_travel_costs(
+    file: UploadFile,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Загрузка travel_country_model_tier_means.json через multipart/form-data.
+    Полная замена/обновление матрицы travel_cost_matrix (UPSERT).
+    """
+    try:
+        return await import_travel_costs_from_file(db, file)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))

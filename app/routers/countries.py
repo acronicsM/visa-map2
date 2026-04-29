@@ -72,7 +72,7 @@ async def countries_geodata(db: AsyncSession = Depends(get_db)):
 
 @router.get("/names", response_model=dict[str, CountryNamesEntry])
 async def country_names(db: AsyncSession = Depends(get_db)):
-    """Справочник имён по iso2; кеш Redis 24 ч."""
+    """Справочник имён и валют по iso2; кеш Redis 24 ч."""
     cached = await cache_get(COUNTRY_NAMES_KEY)
     if cached is not None:
         return cached

@@ -48,6 +48,7 @@ class CountryNamesEntry(BaseModel):
     name_ru: str
     name_native: str | None = None
     name_translations: dict[str, str] | None = None
+    currencies: dict[str, CurrencyInfo] | None = None
 
 
 class CountryDetail(CountryBase):
@@ -61,9 +62,6 @@ class CountryDetail(CountryBase):
     safety_note: str | None = None
     safety_source: str | None = None
     safety_updated_at: datetime | None = None
-    cost_level: str | None = None
-    cost_per_day_usd: int | None = None
-    cost_updated_at: datetime | None = None
     bbox_min_lat: float | None = None
     bbox_max_lat: float | None = None
     bbox_min_lng: float | None = None

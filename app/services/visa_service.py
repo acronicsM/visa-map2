@@ -6,8 +6,8 @@ from app.models.visa_policy import VisaPolicy
 from app.models.passport import Passport
 from app.models.country import Country
 from app.cache import (
-    cache_get, cache_set, cache_delete_pattern,
-    VISA_MAP_KEY, VISA_MAP_TTL,
+    cache_delete_pattern,
+    VISA_MAP_KEY,
 )
 
 

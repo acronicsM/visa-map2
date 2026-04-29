@@ -76,9 +76,8 @@ async def cache_delete_pattern(pattern: str) -> None:
 
 
 # Ключи кеша
-# v2: safety_level, cost_level, cost_per_day_usd в GeoJSON properties
-GEODATA_KEY = "countries:geodata:v2"
-COUNTRY_NAMES_KEY = "countries:names:v2"
+GEODATA_KEY = "countries:geodata:v3"
+COUNTRY_NAMES_KEY = "countries:names:v3"
 # Карта iso2 -> float (без Postgres); выставляется Admin API
 SAFETY_FINAL_SCORES_KEY = "countries:safety_final_scores:v1"
 VISA_MAP_KEY = "visa_map:{iso2}"
@@ -87,3 +86,7 @@ VISA_MAP_KEY = "visa_map:{iso2}"
 GEODATA_TTL = 60 * 60 * 24      # 24 часа — границы стран не меняются
 COUNTRY_NAMES_TTL = 60 * 60 * 24  # 24 часа — справочник имён
 VISA_MAP_TTL = 60 * 60           # 1 час — визовые режимы меняются редко
+TRAVEL_COSTS_KEY = "travel_costs:{home_iso2}:{tier}"
+TRAVEL_COSTS_TTL = 60 * 60 * 24  # 24 часа — данные обновляются редко
+TRAVEL_COST_SCORE_BANDS_KEY = "travel_costs:score_bands:v1"
+TRAVEL_COST_SCORE_BANDS_TTL = 60 * 60 * 24

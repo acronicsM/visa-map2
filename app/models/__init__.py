@@ -1,4 +1,5 @@
 from app.models.country import Country
+from app.models.travel_cost_matrix import TravelCostMatrix
 from app.models.natural_earth_admin0 import NaturalEarthAdmin0
 from app.models.passport import Passport
 from app.models.visa_policy import VisaPolicy
@@ -20,4 +21,5 @@ __all__ = [
     "RssKeyword",
     "SourceDiscoveryLog",
     "CountrySeason",
+    "TravelCostMatrix",
 ]
