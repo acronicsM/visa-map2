@@ -59,10 +59,16 @@ python -m uvicorn app.main:app --reload --port 8000
 | GET | /countries?search=рос | Поиск по названию |
 | GET | /countries/{iso2} | Карточка страны |
 | GET | /countries/safety-final-scores | Карта `iso2 → safety_final_score` (Redis) |
-| GET | /countries/geodata | GeoJSON для карты (кеш Redis) |
+| GET | /countries/geodata | GeoJSON для карты (кеш Redis; в properties нет полей стоимости — см. travel-costs) |
 | GET | /visa-map/{iso2} | Визовая карта для паспорта |
-| GET | /visa-map/{iso2}/{iso2} | Детали визового режима |
+| GET | /visa-map/{iso2}/{dest} | Детали визового режима для пары стран |
+| GET | /country-seasons/{month}/meta | Уникальные значения `season` за месяц (1–12) |
+| GET | /country-seasons/{month}/geodata | GeoJSON сезонов за месяц + `distinct_seasons` |
+| GET | /country-seasons/{iso2} | Сезоны по стране за все месяцы |
+| GET | /travel-costs/score-bands | Пороги score, подписи и цвета для карты (кеш Redis, 24 ч) |
+| GET | /travel-costs/{home_iso2}?budget_tier=cheap\|normal\|expensive | `{ dest_iso2: score }` из `travel_cost_matrix` (кеш 24 ч) |
 | PUT | /admin/countries/safety-final-scores | Импорт merged JSON безопасности (см. ниже) |
+| PUT | /admin/travel-costs | Загрузка `travel_country_model_tier_means.json` (multipart), UPSERT матрицы |
 | PATCH | /admin/visa-policies/{id} | Обновить визовый режим |
 | POST | /admin/news-triggers | Создать триггер |
 | GET | /admin/news-triggers | Список триггеров |
@@ -97,6 +103,16 @@ python -m uvicorn app.main:app --reload --port 8000
 
 Ответ **`PUT`**: `stored_count` (сколько кодов в импорте), `countries_safety_updated` (сколько строк в `countries` реально обновилось; может быть меньше, если в JSON есть коды без записи в БД).
 
+## Матрица стоимости путешествия
+
+Скалярные поля стоимости в `countries` не используются: данные лежат в таблице **`travel_cost_matrix`** (пара `home_iso2` × `dest_iso2` и score/daily по трём уровням бюджета).
+
+**`PUT /admin/travel-costs`** (заголовок **`X-Api-Key`**) — тело запроса: один файл формы с JSON `travel_country_model_tier_means.json` (типичный размер ~50 MB). Сервис парсит потоком, делает UPSERT батчами и сбрасывает кеши GeoJSON и `travel_costs:*`.
+
+**`GET /travel-costs/{home_iso2}?budget_tier=...`** — публично; ответ с мапой `scores` для раскраски карты относительно «дома».
+
+**`GET /travel-costs/score-bands`** — пороги и подписи для фронтенда (согласованы с настройкой `TRAVEL_COST_SCORE_BANDS` в `app/config`, при необходимости).
+
 ## Продакшн деплой
 
 ```bash
@@ -118,7 +134,7 @@ visa-map2/
 │   ├── middleware.py
 │   ├── models/
 │   ├── schemas/
-│   ├── routers/
+│   ├── routers/         # countries, visa_map, country_seasons, travel_costs, admin
 │   └── services/
 ├── alembic/
 ├── scripts/

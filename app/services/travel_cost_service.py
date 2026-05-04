@@ -38,14 +38,17 @@ _BUDGET_TIER_MAP = {
 _BATCH_SIZE = 1000
 _MAX_FILE_SIZE_MB = 100
 
+# Дефолт при пустом TRAVEL_COST_SCORE_BANDS; держите в синхроне с
+# DEFAULT_TRAVEL_COST_SCORE_BANDS (visa-map2-frontend/app/lib/travel-cost-score-bands.ts).
 _DEFAULT_SCORE_BANDS: dict[str, object] = {
-    "thresholds": [0.5, 1.0],
+    "thresholds": [0.5, 1, 2],
     "labels": [
-        "Дешевле",
-        "Как дома",
-        "Дороже",
+        "Без забот",
+        "Комфортно",
+        "Придется экономить",
+        "Вне бюджета",
     ],
-    "colors": ["#22c55e", "#eab308", "#ef4444"],
+    "colors": ["#22c55e", "#84cc16", "#eab308", "#ef4444"],
 }
 
 
