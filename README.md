@@ -66,7 +66,10 @@ python -m uvicorn app.main:app --reload --port 8000
 | GET | /country-seasons/{month}/geodata | GeoJSON сезонов за месяц + `distinct_seasons` |
 | GET | /country-seasons/{iso2} | Сезоны по стране за все месяцы |
 | GET | /travel-costs/score-bands | Пороги score, подписи и цвета для карты (кеш Redis, 24 ч) |
+| GET | /travel-costs/currencies | Популярные валюты для точного бюджета; опционально `?home_iso2=…` |
+| GET | /travel-costs/fx-rate?currency=XXX | Курс USD→трёхбуквенный код валюты (кеш Redis, 24 ч) |
 | GET | /travel-costs/{home_iso2}?budget_tier=cheap\|normal\|expensive | `{ dest_iso2: score }` из `travel_cost_matrix` (кеш 24 ч) |
+| GET | /travel-costs/{home_iso2}/exact-budget-data | `income_daily_usd`, валюта «дома» и `daily_cost_*` для точного бюджета |
 | PUT | /admin/countries/safety-final-scores | Импорт merged JSON безопасности (см. ниже) |
 | PUT | /admin/travel-costs | Загрузка `travel_country_model_tier_means.json` (multipart), UPSERT матрицы |
 | PATCH | /admin/visa-policies/{id} | Обновить визовый режим |
@@ -86,7 +89,7 @@ python -m uvicorn app.main:app --reload --port 8000
 
 1. В **Redis** сохраняется полная карта `iso2 → safety_final_score` (ключ `countries:safety_final_scores:v1`, без TTL до следующей загрузки).
 2. В **PostgreSQL** (`countries`) обновляются **`safety_level`**, **`safety_updated_at`**, **`safety_source`**, **`updated_at`** по порогам из настроек.
-3. Сбрасывается кеш GeoJSON (`countries:geodata:v2`), чтобы на карте подтянулись новые **`safety_level`** в `properties` фич.
+3. Сбрасывается кеш GeoJSON (`countries:geodata:v3`), чтобы на карте подтянулись новые **`safety_level`** в `properties` фич.
 
 Уровни **`safety_level`**: `safe` \| `unsafe` \| `dangerous` — задаются порогами в `.env` (опционально):
 
@@ -110,6 +113,8 @@ python -m uvicorn app.main:app --reload --port 8000
 **`PUT /admin/travel-costs`** (заголовок **`X-Api-Key`**) — тело запроса: один файл формы с JSON `travel_country_model_tier_means.json` (типичный размер ~50 MB). Сервис парсит потоком, делает UPSERT батчами и сбрасывает кеши GeoJSON и `travel_costs:*`.
 
 **`GET /travel-costs/{home_iso2}?budget_tier=...`** — публично; ответ с мапой `scores` для раскраски карты относительно «дома».
+
+**`GET /travel-costs/{home_iso2}/exact-budget-data`** — публично; отдаёт `home_currency`, `income_daily`, `income_daily_usd`, `usd_to_home_rate` и `daily_costs` по направлениям. Для UI-формы также используются **`GET /travel-costs/currencies`** (опционально `home_iso2`) и **`GET /travel-costs/fx-rate?currency=…`**. Фронт делит введённую сумму на дни, переводит дневной бюджет в USD и сравнивает с `daily_cost_cheap`, `daily_cost_normal`, `daily_cost_expensive`.
 
 **`GET /travel-costs/score-bands`** — пороги и подписи для фронтенда (согласованы с настройкой `TRAVEL_COST_SCORE_BANDS` в `app/config`, при необходимости).
 

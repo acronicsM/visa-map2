@@ -32,6 +32,13 @@ class Settings(BaseSettings):
             "Пусто — значения по умолчанию в коде."
         ),
     )
+    fx_rates_url: str = Field(
+        default="https://open.er-api.com/v6/latest/USD",
+        description=(
+            "URL публичного FX snapshot с базой USD. Ожидается JSON с объектом rates."
+        ),
+    )
+    fx_request_timeout_seconds: float = 5.0
 
     @model_validator(mode="after")
     def _safety_thresholds_order(self) -> "Settings":

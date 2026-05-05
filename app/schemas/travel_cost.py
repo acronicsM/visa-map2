@@ -44,6 +44,54 @@ class TravelCostMapResponse(BaseModel):
 
 
 
+class TravelDailyCostThresholds(BaseModel):
+
+    cheap: float | None = None
+
+    normal: float | None = None
+
+    expensive: float | None = None
+
+
+
+class TravelExactBudgetDataResponse(BaseModel):
+
+    home_iso2: str
+
+    home_currency: str | None = None
+
+    # Legacy/local value. Canonical exact-budget default is income_daily_usd.
+    income_daily: float | None = None
+
+    income_daily_usd: float | None = None
+
+    # USD -> home_currency rate, kept for backward compatibility.
+    usd_to_home_rate: float | None = None
+
+    daily_costs: dict[str, TravelDailyCostThresholds]
+
+
+
+
+class TravelCurrencyListResponse(BaseModel):
+
+    currencies: list[str]
+
+    default_currency: str
+
+
+
+
+class TravelFxRateResponse(BaseModel):
+
+    base: str = "USD"
+
+    currency: str
+
+    rate: float
+
+
+
 
 
 class TravelCostUploadResponse(BaseModel):

@@ -90,3 +90,5 @@ TRAVEL_COSTS_KEY = "travel_costs:{home_iso2}:{tier}"
 TRAVEL_COSTS_TTL = 60 * 60 * 24  # 24 часа — данные обновляются редко
 TRAVEL_COST_SCORE_BANDS_KEY = "travel_costs:score_bands:v1"
 TRAVEL_COST_SCORE_BANDS_TTL = 60 * 60 * 24
+FX_RATE_KEY = "fx:usd_to:{currency}"
+FX_RATE_TTL = 60 * 60 * 24  # 24 часа — достаточно для UI-бюджета

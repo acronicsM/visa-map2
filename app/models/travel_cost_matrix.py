@@ -38,6 +38,18 @@ class TravelCostMatrix(Base):
     daily_cost_expensive: Mapped[float | None] = mapped_column(
         NUMERIC(10, 4), nullable=True
     )
+    home_currency: Mapped[str | None] = mapped_column(
+        String(3), nullable=True
+    )
+    income_daily: Mapped[float | None] = mapped_column(
+        NUMERIC(12, 4), nullable=True
+    )
+    income_daily_usd: Mapped[float | None] = mapped_column(
+        NUMERIC(12, 4), nullable=True
+    )
+    usd_to_home_rate: Mapped[float | None] = mapped_column(
+        NUMERIC(18, 8), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
