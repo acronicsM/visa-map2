@@ -6,7 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.database import get_db
-from app.routers import admin, countries, country_seasons, travel_costs, visa_map
+from app.routers import (
+    admin,
+    countries,
+    country_profiles,
+    country_seasons,
+    travel_costs,
+    vacation_profiles,
+    visa_map,
+)
 from app.exceptions import register_exception_handlers
 from app.middleware import logging_middleware
 from app.logging_config import setup_logging
@@ -33,8 +41,10 @@ register_exception_handlers(app)
 app.include_router(countries.router)
 app.include_router(visa_map.router)
 app.include_router(country_seasons.router)
+app.include_router(vacation_profiles.router)
 app.include_router(travel_costs.router)
 app.include_router(admin.router)
+app.include_router(country_profiles.router)
 
 
 def custom_openapi():

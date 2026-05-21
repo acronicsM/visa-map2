@@ -9,6 +9,10 @@ from app.models.rss_source import RssSource
 from app.models.rss_keyword import RssKeyword
 from app.models.source_discovery_log import SourceDiscoveryLog
 from app.models.country_season import CountrySeason
+from app.models.country_vacation_profile import (
+    CountryVacationExoticScore,
+    CountryVacationProfile,
+)
 
 __all__ = [
     "Country",
@@ -22,4 +26,6 @@ __all__ = [
     "SourceDiscoveryLog",
     "CountrySeason",
     "TravelCostMatrix",
+    "CountryVacationProfile",
+    "CountryVacationExoticScore",
 ]

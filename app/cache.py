@@ -92,3 +92,7 @@ TRAVEL_COST_SCORE_BANDS_KEY = "travel_costs:score_bands:v1"
 TRAVEL_COST_SCORE_BANDS_TTL = 60 * 60 * 24
 FX_RATE_KEY = "fx:usd_to:{currency}"
 FX_RATE_TTL = 60 * 60 * 24  # 24 часа — достаточно для UI-бюджета
+VACATION_PROFILES_KEY = "vacation:profiles:v1"
+VACATION_EXOTIC_KEY = "vacation:exotic:{home_iso2}:v1"
+VACATION_PROFILES_TTL = 60 * 60 * 24
+VACATION_EXOTIC_TTL = 60 * 60 * 24
