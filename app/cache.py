@@ -22,6 +22,14 @@ async def get_redis() -> aioredis.Redis:
     return _redis_client
 
 
+async def close_redis() -> None:
+    """Закрыть Redis-клиент (для CLI-скриптов перед завершением event loop)."""
+    global _redis_client
+    if _redis_client is not None:
+        await _redis_client.aclose()
+        _redis_client = None
+
+
 async def cache_get(key: str) -> Any | None:
     try:
         redis = await get_redis()
@@ -88,6 +96,8 @@ COUNTRY_NAMES_TTL = 60 * 60 * 24  # 24 часа — справочник имё�
 VISA_MAP_TTL = 60 * 60           # 1 час — визовые режимы меняются редко
 TRAVEL_COSTS_KEY = "travel_costs:{home_iso2}:{tier}"
 TRAVEL_COSTS_TTL = 60 * 60 * 24  # 24 часа — данные обновляются редко
+PASSPORT_BOOTSTRAP_KEY = "passport_bootstrap:{home_iso2}:v1"
+PASSPORT_BOOTSTRAP_TTL = 60 * 60 * 24  # 24 часа — visa + scores + currencies
 TRAVEL_COST_SCORE_BANDS_KEY = "travel_costs:score_bands:v1"
 TRAVEL_COST_SCORE_BANDS_TTL = 60 * 60 * 24
 FX_RATE_KEY = "fx:usd_to:{currency}"
@@ -96,3 +106,6 @@ VACATION_PROFILES_KEY = "vacation:profiles:v1"
 VACATION_EXOTIC_KEY = "vacation:exotic:{home_iso2}:v1"
 VACATION_PROFILES_TTL = 60 * 60 * 24
 VACATION_EXOTIC_TTL = 60 * 60 * 24
+FLIGHTS_DIRECT_KEY = "flights:direct:{city_key}:{source}:v1"
+FLIGHTS_DEPARTURE_CITIES_KEY = "flights:departure_cities:{country_iso2}:{scope}:v1"
+FLIGHTS_DEPARTURE_CITIES_TTL = 60 * 60 * 24  # 24 часа — меняется только при reimport

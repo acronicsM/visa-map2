@@ -214,6 +214,7 @@ async def import_travel_costs_from_file(
 
     await cache_delete(GEODATA_KEY)
     await cache_delete_pattern("travel_costs:*")
+    await cache_delete_pattern("passport_bootstrap:*")
     logger.info(f"Travel costs imported: {imported_count} rows")
 
     return TravelCostUploadResponse(imported_count=imported_count)

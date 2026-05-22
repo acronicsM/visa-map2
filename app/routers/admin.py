@@ -14,6 +14,7 @@ from app.schemas.admin import (
     VisaPolicyResponse,
     VisaPolicyUpdate,
 )
+from app.schemas.flight import FlightCityStatsResponse, FlightOpenFlightsImportResponse
 from app.services.admin_service import (
     create_news_trigger,
     get_news_triggers,
@@ -21,6 +22,8 @@ from app.services.admin_service import (
     update_trigger_status,
     update_visa_policy,
 )
+from app.services.flight_service import get_flight_city_stats
+from app.services.flights.import_openflights import import_openflights_data
 from app.services.travel_cost_service import import_travel_costs_from_file
 
 router = APIRouter(
@@ -111,3 +114,28 @@ async def put_travel_costs(
         return await import_travel_costs_from_file(db, file)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.post(
+    "/flights/reimport-openflights",
+    response_model=FlightOpenFlightsImportResponse,
+)
+async def reimport_openflights(db: AsyncSession = Depends(get_db)):
+    """Перезагрузка airports.dat / routes.dat из OpenFlights."""
+    from app.cache import cache_delete_pattern
+
+    try:
+        stats = await import_openflights_data(db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    await cache_delete_pattern("flights:departure_cities:*")
+    return FlightOpenFlightsImportResponse(**stats)
+
+
+@router.get("/flights/stats", response_model=FlightCityStatsResponse)
+async def flight_city_stats(
+    limit: int = Query(50, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """Топ городов по частоте запросов прямых перелётов."""
+    return await get_flight_city_stats(db, limit=limit)

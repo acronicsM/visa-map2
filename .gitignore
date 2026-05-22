@@ -29,3 +29,6 @@ secrets/
 # Geodata files
 scripts/geodata/
 input_data/
+
+# OPENFLIGHTS_DATA_DIR
+data/openflights/

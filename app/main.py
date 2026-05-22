@@ -11,6 +11,8 @@ from app.routers import (
     countries,
     country_profiles,
     country_seasons,
+    flights,
+    passport_bootstrap,
     travel_costs,
     vacation_profiles,
     visa_map,
@@ -40,9 +42,11 @@ register_exception_handlers(app)
 
 app.include_router(countries.router)
 app.include_router(visa_map.router)
+app.include_router(passport_bootstrap.router)
 app.include_router(country_seasons.router)
 app.include_router(vacation_profiles.router)
 app.include_router(travel_costs.router)
+app.include_router(flights.router)
 app.include_router(admin.router)
 app.include_router(country_profiles.router)
 

@@ -13,6 +13,13 @@ from app.models.country_vacation_profile import (
     CountryVacationExoticScore,
     CountryVacationProfile,
 )
+from app.models.flight import (
+    Airport,
+    CountryHubAirport,
+    FlightCityRequestStats,
+    FlightDirectCache,
+    FlightRoute,
+)
 
 __all__ = [
     "Country",
@@ -28,4 +35,9 @@ __all__ = [
     "TravelCostMatrix",
     "CountryVacationProfile",
     "CountryVacationExoticScore",
+    "Airport",
+    "FlightRoute",
+    "CountryHubAirport",
+    "FlightDirectCache",
+    "FlightCityRequestStats",
 ]

@@ -118,6 +118,33 @@ python -m uvicorn app.main:app --reload --port 8000
 
 **`GET /travel-costs/score-bands`** — пороги и подписи для фронтенда (согласованы с настройкой `TRAVEL_COST_SCORE_BANDS` в `app/config`, при необходимости).
 
+## Прямые перелёты
+
+**`GET /flights/departure-cities?country_iso2=RU&international_only=true`** — города вылета по домашней стране (OpenFlights airports, сгруппированы по городу; по умолчанию только города с международными маршрутами).
+
+**`GET /flights/direct-countries?city=Samara&country_iso2=RU`** — карта `{ dest_iso2: true/false }` для фильтра на карте. Источник — `FLIGHTS_DATA_SOURCE` (`openflights`, `aviation_edge`, `ignav`).
+
+Офлайн-данные OpenFlights:
+
+```bash
+python scripts/import_openflights_data.py
+```
+
+Точный поиск через Google Flights (**отдельный скрипт**, не `FLIGHTS_DATA_SOURCE`):
+
+```bash
+python scripts/fast_flights_search.py --origin Samara,RU --dest-country TR
+python scripts/fast_flights_search.py --origin Samara,RU --origin Moscow,RU --dest-country TH --date 2026-07-15 -o result.json
+```
+
+На вход: один или несколько городов отправления (`CITY,ISO2`) и одна страна назначения. На выход: полный JSON с рейсами из Google Flights по парам аэропортов (origin × hub страны назначения).
+
+Фоновый прогрев кеша API:
+
+```bash
+python scripts/flight_cache_refresh.py
+```
+
 ## Продакшн деплой
 
 ```bash
